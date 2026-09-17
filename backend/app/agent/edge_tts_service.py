@@ -91,10 +91,16 @@ class EdgeTTSService(TTSService):
         for decoded in decoder.decode(packet):
             await self.stop_ttfb_metrics()
             samples = decoded.to_ndarray()
+            # A bare mp3 CodecContext decodes to s16p, while the same mp3 opened as a container
+            # gives fltp; and averaging the channels promotes either one to float64. So record
+            # which scale the samples are on *before* the mean — clipping int16 samples to
+            # -1.0..1.0 leaves only their sign, which is heard as a full-scale square wave.
+            was_float = np.issubdtype(samples.dtype, np.floating)
             if samples.ndim > 1:
                 samples = samples.mean(axis=0)
-            if samples.dtype != np.int16:
-                samples = (np.clip(samples, -1.0, 1.0) * 32767).astype(np.int16)
+            if was_float:
+                samples = samples * 32767.0
+            samples = np.clip(samples, -32768, 32767).astype(np.int16)
             audio = await self._resampler.resample(samples.tobytes(), decoded.sample_rate, self.sample_rate)
             frames.append(TTSAudioRawFrame(audio=audio, sample_rate=self.sample_rate, num_channels=1,
                                            context_id=context_id))

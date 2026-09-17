@@ -116,3 +116,50 @@ def test_gemini_reissues_a_stalled_request(monkeypatch):
     assert gemini._retry_on_timeout
     assert gemini._retry_timeout_secs == pipeline.GEMINI_FIRST_CHUNK_TIMEOUT_S
     assert gemini._stream_idle_timeout_secs == pipeline.GEMINI_STREAM_IDLE_TIMEOUT_S
+
+
+def test_edge_tts_decodes_mp3_at_its_original_level():
+    """The other TTS tests stub the decoder out, so this one runs a real MP3 through it.
+
+    PyAV's bare mp3 CodecContext returns s16p, not the fltp a container gives, and averaging
+    the channels promotes both to float64 - so a conversion that assumes floats in -1..1 keeps
+    only each sample's sign and the voice comes out as a full-scale square wave.
+    """
+    import av
+    import numpy as np
+
+    rate, amplitude = 24000, 0.5
+    t = np.arange(rate) / rate
+    pcm = (np.sin(2 * np.pi * 440 * t) * amplitude * 32767).astype(np.int16)
+
+    # A bare encoder, so the bytes are the raw mp3 stream edge-tts sends, with no ID3 wrapper.
+    encoder = av.CodecContext.create("mp3", "w")
+    encoder.sample_rate, encoder.layout, encoder.format = rate, "mono", "fltp"
+    resampler = av.AudioResampler(format="fltp", layout="mono", rate=rate)
+    source = av.AudioFrame.from_ndarray(pcm.reshape(1, -1), format="s16", layout="mono")
+    source.sample_rate = rate
+    packets = []
+    for frame in resampler.resample(source) + resampler.resample(None):
+        packets += encoder.encode(frame)
+    packets += encoder.encode(None)
+    mp3 = b"".join(bytes(p) for p in packets)
+
+    tts = EdgeTTSService(voice="en-US-AvaNeural")
+    tts._sample_rate = rate
+    decoder = av.CodecContext.create("mp3", "r")
+
+    async def collect():
+        out = bytearray()
+        for packet in decoder.parse(mp3):
+            for frame in await tts._decode(decoder, packet, "ctx"):
+                out += frame.audio
+        for frame in await tts._decode(decoder, None, "ctx"):
+            out += frame.audio
+        return bytes(out)
+
+    decoded = np.frombuffer(asyncio.run(collect()), dtype=np.int16).astype(np.float64) / 32768.0
+    assert len(decoded) >= rate * 0.9, "the sine should survive decoding roughly intact"
+    voiced = decoded[np.abs(decoded) > 1e-4]
+    assert np.abs(decoded).max() < 0.95, "nothing should be pushed to full scale"
+    # A sine at 0.5 has an RMS of 0.354; reduced to its sign it would be about 0.87.
+    assert 0.28 < np.sqrt((voiced**2).mean()) < 0.42
