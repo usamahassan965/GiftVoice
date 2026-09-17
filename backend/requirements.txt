@@ -1,0 +1,27 @@
+# Install (CPU-only torch keeps the download small):
+#   uv pip install -r requirements.txt --index-url https://pypi.org/simple \
+#     --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match
+
+# Voice agent: WebRTC, Silero VAD, smart turn, Groq, Gemini, Kokoro (Flows is bundled as pipecat.flows)
+pipecat-ai[webrtc,silero,local-smart-turn-v3,groq,google,kokoro]==1.10.0
+edge-tts==7.2.8
+
+# API
+fastapi==0.141.1
+uvicorn==0.53.0
+python-multipart==0.0.32
+python-dotenv==1.2.3
+loguru==0.7.3
+httpx==0.28.1
+stripe==15.6.1
+
+# Search: bge-small text + CLIP image embeddings, BM25 hybrid
+torch==2.14.0
+sentence-transformers==6.0.1
+chromadb==1.5.9
+rank-bm25==0.2.2
+pillow==12.3.0
+numpy==2.5.3
+
+# Tests
+pytest==9.1.1

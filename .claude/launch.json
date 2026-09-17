@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "C:/Users/Usama/miniconda3/envs/giftvoice/python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--app-dir", "backend", "--port", "7860"],
+      "port": 7860
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "C:/Users/Usama/miniconda3/envs/giftvoice/npm.cmd",
+      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "port": 3000
+    }
+  ]
+}
