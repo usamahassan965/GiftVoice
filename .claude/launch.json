@@ -4,13 +4,35 @@
     {
       "name": "backend",
       "runtimeExecutable": "C:/Users/Usama/miniconda3/envs/giftvoice/python.exe",
-      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--app-dir", "backend", "--port", "7860"],
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "backend",
+        "--port",
+        "7860"
+      ],
+      "port": 7860
+    },
+    {
+      "name": "backend (hosted demo)",
+      "runtimeExecutable": "C:/Users/Usama/miniconda3/envs/giftvoice/python.exe",
+      "runtimeArgs": [
+        "-c",
+        "import os, sys; os.environ['TRANSPORT'] = 'websocket'; sys.path.insert(0, 'backend'); import uvicorn; uvicorn.run('app.main:app', host='127.0.0.1', port=7860)"
+      ],
       "port": 7860
     },
     {
       "name": "frontend",
       "runtimeExecutable": "C:/Users/Usama/miniconda3/envs/giftvoice/npm.cmd",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
       "port": 3000
     }
   ]

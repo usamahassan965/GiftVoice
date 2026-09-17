@@ -35,9 +35,7 @@ from pipecat.processors.aggregators.llm_response_universal import (
 )
 from pipecat.services.google.llm import GoogleLLMService
 from pipecat.services.groq.llm import GroqLLMService
-from pipecat.transports.base_transport import TransportParams
-from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
-from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
+from pipecat.transports.base_transport import BaseTransport
 from pipecat.utils.errors import ErrorCategory
 from pipecat.workers.runner import WorkerRunner
 
@@ -150,16 +148,13 @@ def build_tts() -> tuple[object, object | None]:
         return edge, edge
 
 
-async def run_bot(connection: SmallWebRTCConnection, session_id: str | None, customer_id: str | None):
+async def run_bot(transport: BaseTransport, session_id: str | None, customer_id: str | None):
+    """One conversation on an already-built transport (SmallWebRTC locally, websocket on the hosted demo)."""
     session_id = session_id or uuid.uuid4().hex
     customer_id = customer_id or "guest"
     if not config.GROQ_API_KEY:
         raise RuntimeError("GROQ_API_KEY is required for speech-to-text")
 
-    transport = SmallWebRTCTransport(
-        webrtc_connection=connection,
-        params=TransportParams(audio_in_enabled=True, audio_out_enabled=True),
-    )
     stt = AutoLanguageGroqSTTService(api_key=config.GROQ_API_KEY,
                                      settings=AutoLanguageGroqSTTService.Settings(model=config.GROQ_STT_MODEL))
 

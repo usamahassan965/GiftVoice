@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 import { formatDate, formatMoney } from "@/lib/format";
 import type { Order } from "@/lib/types";
 
 /** Stand-in for Stripe Checkout when no STRIPE_SECRET_KEY is configured. No payment details are collected. */
-export default function MockCheckout({ params }: PageProps<"/checkout/mock/[orderId]">) {
-  const { orderId } = use(params);
+export default function MockCheckoutPage() {
+  return (
+    <Suspense>
+      <MockCheckout />
+    </Suspense>
+  );
+}
+
+function MockCheckout() {
+  const orderId = useSearchParams().get("id") ?? "";
   const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +33,7 @@ export default function MockCheckout({ params }: PageProps<"/checkout/mock/[orde
   async function pay() {
     setPaying(true);
     const res = await fetch(`/api/orders/${orderId}/mock-pay`, { method: "POST" });
-    if (res.ok) router.push(`/order/${orderId}`);
+    if (res.ok) router.push(`/order?id=${encodeURIComponent(orderId)}`);
     else {
       setError("Payment simulation failed.");
       setPaying(false);
@@ -66,7 +74,7 @@ export default function MockCheckout({ params }: PageProps<"/checkout/mock/[orde
               {paying ? "Processing…" : `Simulate payment of ${formatMoney(order.total)}`}
             </button>
           ) : (
-            <Link href={`/order/${order.id}`} className="mt-5 block text-center text-accent underline">
+            <Link href={`/order?id=${encodeURIComponent(order.id)}`} className="mt-5 block text-center text-accent underline">
               This order is already {order.status.replace("_", " ")}. View order
             </Link>
           )}

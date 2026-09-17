@@ -2,22 +2,25 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, use, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { formatDate, formatMoney, titleCase } from "@/lib/format";
 import type { Order } from "@/lib/types";
 
-export default function OrderPage({ params }: PageProps<"/order/[orderId]">) {
-  const { orderId } = use(params);
+// The order id travels as ?id= rather than a path segment: the hosted demo ships the frontend as a
+// static export, which can only pre-render paths it knows at build time.
+export default function OrderPage() {
   return (
     <Suspense>
-      <OrderDetails orderId={orderId} />
+      <OrderDetails />
     </Suspense>
   );
 }
 
-function OrderDetails({ orderId }: { orderId: string }) {
-  const stripeSession = useSearchParams().get("session_id");
+function OrderDetails() {
+  const search = useSearchParams();
+  const orderId = search.get("id") ?? "";
+  const stripeSession = search.get("session_id");
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
 

@@ -14,7 +14,7 @@ def stripe_enabled() -> bool:
 def create_payment_link(order: dict) -> str:
     """Return a URL where the shopper completes payment for `order`."""
     if not stripe_enabled():
-        return f"{config.FRONTEND_URL}/checkout/mock/{order['id']}"
+        return f"{config.FRONTEND_URL}/checkout/mock?id={order['id']}"
 
     import stripe
 
@@ -42,7 +42,7 @@ def create_payment_link(order: dict) -> str:
         mode="payment",
         line_items=line_items,
         client_reference_id=order["id"],
-        success_url=f"{config.FRONTEND_URL}/order/{order['id']}?session_id={{CHECKOUT_SESSION_ID}}",
+        success_url=f"{config.FRONTEND_URL}/order?id={order['id']}&session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{config.FRONTEND_URL}/?cancelled={order['id']}",
     )
     return session.url

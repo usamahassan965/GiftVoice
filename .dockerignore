@@ -1,0 +1,15 @@
+.git
+.env
+docs
+portfolio-website
+frontend/node_modules
+frontend/.next
+frontend/out
+**/__pycache__
+**/*.pyc
+.pytest_cache
+backend/tests
+data/images
+data/chroma
+data/*.db
+data/tickets

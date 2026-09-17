@@ -8,6 +8,12 @@ A real-time voice shopping concierge for an online gift store. You describe who 
 
 It runs entirely on **free resources**: open-source models on the CPU, plus the free tiers of Groq and Google AI Studio.
 
+## Try it live
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/usamahassan965/GiftVoice/blob/main/deploy/colab/giftvoice_demo.ipynb)
+
+The notebook starts the whole agent on Colab's free CPU and prints a public HTTPS link you can talk to — you only add your own free Groq and Google AI Studio keys as Colab secrets. Details in [deploy/README.md](deploy/README.md).
+
 ## Demo
 
 ![A shopper asks for a birthday gift for their mom, picks a seed collection, adds wrap and a card, confirms the order read-back, and Gigi remembers Mom's birthday](docs/demo.gif)
@@ -106,7 +112,13 @@ Copy `.env.example` to `.env` and add the free keys:
 | `PEXELS_API_KEY` | pexels.com/api | Optional: real photos for curated items (placeholders otherwise) |
 | `STRIPE_SECRET_KEY` | Stripe dashboard, test mode `sk_test_…` | Optional: the built-in mock checkout is used otherwise |
 
-Seed the catalog (run from `backend/`):
+Unpack the seeded catalog — 214 products with photos, their Chroma vectors and the SQLite rows travel with the repo as `data/catalog.zip`:
+
+```bash
+python backend/scripts/unpack_catalog.py
+```
+
+To build it from scratch instead (needs `PEXELS_API_KEY` and `GOOGLE_API_KEY`, and takes a while), run from `backend/`:
 
 ```bash
 python -m scripts.seed_catalog
@@ -131,6 +143,17 @@ npm install && npm run dev
 ```
 
 Open http://localhost:3000 and press the orb. Chrome or Edge is recommended; allow microphone access.
+
+### One container (Docker)
+
+Local development keeps the UI and the agent apart and streams audio peer-to-peer over WebRTC. A free host gives you a single HTTPS port and no UDP, so the container exports the UI as static files served by FastAPI and moves the audio onto a websocket:
+
+```bash
+docker build -t giftvoice .
+docker run -p 7860:7860 --env-file .env giftvoice
+```
+
+Open http://localhost:7860. The browser asks `/api/ready` which transport a deployment speaks, so one build works both ways. [deploy/README.md](deploy/README.md) covers the shared demos built on this: the Colab notebook above, and hosting the image somewhere always-on, with the session limits a shared demo needs.
 
 ## Try saying
 

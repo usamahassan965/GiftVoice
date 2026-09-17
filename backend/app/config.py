@@ -34,7 +34,19 @@ EDGE_VOICE_UR = env("EDGE_VOICE_UR", "ur-PK-UzmaNeural")
 
 STORE_NAME = env("STORE_NAME", "GiftVoice")
 CURRENCY = env("CURRENCY", "USD")
-FRONTEND_URL = env("FRONTEND_URL", "http://localhost:3000")
+# On a Hugging Face Space the app is its own origin, and HF exports the host name.
+SPACE_HOST = env("SPACE_HOST")
+FRONTEND_URL = env("FRONTEND_URL") or (f"https://{SPACE_HOST}" if SPACE_HOST else "http://localhost:3000")
 
 TEXT_EMBED_MODEL = "BAAI/bge-small-en-v1.5"
 CLIP_MODEL = "clip-ViT-B-32"
+
+# --- Hosted demo (Hugging Face Space) -------------------------------------------------
+# Local dev uses SmallWebRTC (peer-to-peer, needs UDP). A Space only exposes one HTTPS
+# port, so the hosted demo streams audio over a websocket instead.
+TRANSPORT = env("TRANSPORT", "smallwebrtc")
+# The shared demo runs on one person's free API quota, so it caps sessions and their length.
+MAX_CONCURRENT_SESSIONS = int(env("MAX_CONCURRENT_SESSIONS", "0") or 0)
+SESSION_TIMEOUT_SECS = int(env("SESSION_TIMEOUT_SECS", "0") or 0)
+# Next.js exports into this folder for the single-container deploy; served at / when present.
+FRONTEND_DIST = ROOT_DIR / "frontend" / "out"

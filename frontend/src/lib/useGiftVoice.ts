@@ -2,6 +2,7 @@
 
 import { PipecatClient, type TransportState } from "@pipecat-ai/client-js";
 import { SmallWebRTCTransport } from "@pipecat-ai/small-webrtc-transport";
+import { WebSocketTransport } from "@pipecat-ai/websocket-transport";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getCustomerId, newSessionId } from "./format";
@@ -17,13 +18,30 @@ import type {
 
 export type BotActivity = "idle" | "listening" | "user-speaking" | "thinking" | "bot-speaking";
 
-/** Resolves once the backend has loaded its models (about a minute after it starts), or if it can't be reached. */
-async function waitForBackend() {
+type Ready = {
+  ready: boolean;
+  transport?: "smallwebrtc" | "websocket";
+  session_limit_secs?: number | null;
+  busy?: boolean;
+};
+
+/** Resolves once the backend has loaded its models (about a minute after it starts), or if it can't be reached.
+ *  The answer also says which transport this deployment speaks. */
+async function waitForBackend(): Promise<Ready> {
   for (;;) {
     const res = await fetch("/api/ready").catch(() => null);
-    if (!res?.ok || (await res.json()).ready) return;
+    if (!res?.ok) return { ready: false };
+    const body = (await res.json()) as Ready;
+    if (body.ready) return body;
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
+}
+
+/** The hosted demo streams audio over a websocket; local development uses peer-to-peer WebRTC. */
+function buildTransport(kind: Ready["transport"]) {
+  return kind === "websocket"
+    ? new WebSocketTransport()
+    : new SmallWebRTCTransport({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
 }
 
 export interface Latency {
@@ -113,9 +131,9 @@ export function useGiftVoice() {
     [addLine],
   );
 
-  const createClient = useCallback(() => {
+  const createClient = useCallback((kind: Ready["transport"]) => {
     const client = new PipecatClient({
-      transport: new SmallWebRTCTransport({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] }),
+      transport: buildTransport(kind),
       enableMic: true,
       enableCam: false,
       callbacks: {
@@ -171,19 +189,31 @@ export function useGiftVoice() {
   const connect = useCallback(async () => {
     const ids = getIds();
     setError(null);
-    if (!clientRef.current) clientRef.current = createClient();
     try {
       // A session opened while the backend is still loading models starts late and misses its greeting.
       setWarming(true);
-      await waitForBackend().finally(() => setWarming(false));
-      // The backend has no /start step: the WebRTC offer itself starts the bot, so connect straight
-      // to it (startBotAndConnect would first POST the bare request data to this endpoint).
-      await clientRef.current.connect({
-        webrtcRequestParams: {
-          endpoint: "/api/offer",
-          requestData: { session_id: ids.sessionId, customer_id: ids.customerId },
-        },
-      });
+      const backend = await waitForBackend().finally(() => setWarming(false));
+      if (backend.busy) {
+        // The shared demo runs on one free-tier key, so it only takes a couple of callers at once.
+        setError("The live demo is busy right now - please try again in a minute.");
+        return;
+      }
+      if (!clientRef.current) clientRef.current = createClient(backend.transport);
+      if (backend.transport === "websocket") {
+        // Both ends of the socket start the session: connecting is what launches the bot.
+        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const query = new URLSearchParams({ session_id: ids.sessionId, customer_id: ids.customerId });
+        await clientRef.current.connect({ wsUrl: `${wsProtocol}//${window.location.host}/ws?${query}` });
+      } else {
+        // The backend has no /start step: the WebRTC offer itself starts the bot, so connect straight
+        // to it (startBotAndConnect would first POST the bare request data to this endpoint).
+        await clientRef.current.connect({
+          webrtcRequestParams: {
+            endpoint: "/api/offer",
+            requestData: { session_id: ids.sessionId, customer_id: ids.customerId },
+          },
+        });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not reach the voice agent. Is the backend running?");
       setTransportState("error");
