@@ -1,5 +1,9 @@
 # GiftVoice
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Python 3.12](https://img.shields.io/badge/Python-3.12-3776ab)
+![Next.js 16](https://img.shields.io/badge/Next.js-16-black)
+
 A real-time voice shopping concierge for an online gift store. You describe who the gift is for, and it finds grounded picks from the catalog. Products show up on screen and you can refer to them by position ("the second one"). It adds gift wrap and a message, checks whether delivery beats your deadline, and takes you to a test-mode checkout. It also remembers recipients between visits.
 
 It runs entirely on **free resources**: open-source models on the CPU, plus the free tiers of Groq and Google AI Studio.
@@ -177,3 +181,9 @@ frontend/
 - Google may use free-tier Gemini prompts to improve its products. Don't put real personal data through it.
 - edge-tts is an unofficial client for Microsoft Edge's read-aloud voices. It's fine for demos, but not something to rely on in production.
 - Curated product photos come from Pexels, and each card credits the photographer.
+
+## Author
+
+Built by **Usama Hassan** — [portfolio](https://usamahassan965.github.io) · [GitHub](https://github.com/usamahassan965) · [LinkedIn](https://www.linkedin.com/in/usama-hassan-b589b2281)
+
+Released under the [MIT License](LICENSE).
